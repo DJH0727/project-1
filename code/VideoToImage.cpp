@@ -6,6 +6,7 @@
 #define QR_SIZE 136
 #define BLACK Scalar(0, 0, 0, 255)
 #define WHITE Scalar(255, 255, 255, 255)
+#define RED   Scalar(0,0,255,255)//测试用
 #define RECT_SIZE 18
 
 int VideotoImage(const char* ffmPath, const char* imagePath,
@@ -29,10 +30,11 @@ int VideotoImage(const char* ffmPath, const char* imagePath,
 void DrowRect(Mat& image)
 {
     int BorderSize = RECT_SIZE / 9;
-    int axis[3][2] = { {0,0},{QR_SIZE - RECT_SIZE, 0},{0, QR_SIZE - RECT_SIZE} };//左上，右上，左下
+    int axis[3][2] = { {0,0},{QR_SIZE - RECT_SIZE-1, 0},{0, QR_SIZE - RECT_SIZE-1} };//左上，右上，左下
     for (int j = 0; j < 3; j++)
     {
         int x = axis[j][0], y = axis[j][1];
+        
         for (int i = 0; i <= 3; i++)
         {
             if (i % 2 == 0)
@@ -58,6 +60,7 @@ void OpenFile(vector<char>& data, Mat& image)
     file.close(); 
     return;
 }
+//放大图像
 Mat BigMat(Mat& image)
 {
     int rate = 5;
@@ -70,18 +73,49 @@ Mat BigMat(Mat& image)
     }
     return BiggerMat;
 }
-
+//从上到下画
 void DrowQRPoint(vector<char>& data, Mat& image)
 {
-
-    for (int i = RECT_SIZE; i < QR_SIZE - RECT_SIZE; i++)
+    int cnt = 0;
+    for (int i = 0; i <QR_SIZE - RECT_SIZE / 9;i++)
     {
-
-        if (data[i] == 1)
+        if (i <= RECT_SIZE)//两个矩阵中间
         {
-            cout << i << ' ' << data[i] << endl;
-            image.at<cv::Vec3b>(RECT_SIZE / 9, i) = cv::Vec3b(0, 0, 0);
+            for (int j = 0; j < QR_SIZE - 2 * RECT_SIZE - 2; j++)
+            {
+
+                if (data[cnt] == 1)
+                {
+                    image.at<cv::Vec3b>(RECT_SIZE / 9 + i, RECT_SIZE + j + 1) = cv::Vec3b(0, 0, 0);
+                }
+                cnt++;
+            }
         }
+        else if (i > RECT_SIZE && i <= QR_SIZE - RECT_SIZE- RECT_SIZE / 9)//图像中间
+        {
+            for (int j = 0; j < QR_SIZE - 2 * RECT_SIZE/9; j++)
+            {
+
+                if (data[cnt] == 1)
+                {
+                    image.at<cv::Vec3b>( i , RECT_SIZE / 9 +j) = cv::Vec3b(0, 0, 0);
+                }
+                cnt++;
+            }
+        }
+        else//右下方矩阵中间
+        {
+            for (int j = 0; j < QR_SIZE - RECT_SIZE- RECT_SIZE / 9-1; j++)
+            {
+
+                if (data[cnt] == 1)
+                {
+                    image.at<cv::Vec3b>(i, RECT_SIZE + j + 1) = cv::Vec3b(0, 0, 0);
+                }
+                cnt++;
+            }
+        }
+
     }
 }
 
@@ -92,9 +126,9 @@ void CreatQRcode()
     DrowRect(QR);
     vector<char> DATA;
     OpenFile(DATA, QR);
-
+    DrowQRPoint(DATA,QR);
     BigQR = BigMat(QR);
-
+    imwrite("QR.jpg", BigQR);
     imshow("Display Window", BigQR);
     waitKey();
 }
