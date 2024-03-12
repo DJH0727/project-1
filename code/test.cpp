@@ -4,7 +4,8 @@
 #include "VideoToImage.h"
 int main()
 {
-	VideotoImage("bin", "image", "png", "test.mp4");
+	//VideotoImage("bin", "image", "png", "test.mp4");
+	CreatQRcode();
 	//ImagetoVideo("", 15, "image", "png", "out.mp4", 1000);
 	//VideotoImage("", "imageOut", "png", "out.mp4");
 	return 0;
