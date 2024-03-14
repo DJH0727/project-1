@@ -1,12 +1,12 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 #include <fstream>
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
-#define QR_SIZE 128  // 定义二维码的大小
-#define BLACK cv::Scalar(0, 0, 0)  // 定义颜色黑色
-#define WHITE cv::Scalar(255, 255, 255)  // 定义颜色白色
-#define RECT_SIZE 24  // 定义定位图案的大小
+#define QR_SIZE 64  // 定义二维码的大小
+#define BLACK cv::Vec3b(0, 0, 0)  // 定义颜色黑色
+#define WHITE cv::Vec3b(255, 255, 255)  // 定义颜色白色
+#define RECT_SIZE 12  // 定义定位图案的大小
 
 // 打开二进制文件并读取数据
 int OpenFile(const std::string& filePath, std::vector<int>& data)
@@ -64,7 +64,7 @@ void DrawQRPoint(const std::vector<int>& data, cv::Mat& image)
                 {
                     if (data[cnt] == 1)
                     {
-                        image.at<cv::Vec3b>(RECT_SIZE / 9 + i, RECT_SIZE + j + 1) = cv::Vec3b(0, 0, 0);  // 设置黑色点
+                        image.at<cv::Vec3b>(RECT_SIZE / 9 + i, RECT_SIZE + j + 1) = BLACK;  // 设置黑色点
                     }
                     cnt++;
                 }
@@ -78,7 +78,7 @@ void DrawQRPoint(const std::vector<int>& data, cv::Mat& image)
                 {
                     if (data[cnt] == 1)
                     {
-                        image.at<cv::Vec3b>(i, RECT_SIZE / 9 + j) = cv::Vec3b(0, 0, 0);  // 设置黑色点
+                        image.at<cv::Vec3b>(i, RECT_SIZE / 9 + j) = BLACK;  // 设置黑色点
                     }
                     cnt++;
                 }
@@ -92,7 +92,7 @@ void DrawQRPoint(const std::vector<int>& data, cv::Mat& image)
                 {
                     if (data[cnt] == 1)
                     {
-                        image.at<cv::Vec3b>(i, RECT_SIZE + j + 1) = cv::Vec3b(0, 0, 0);  // 设置黑色点
+                        image.at<cv::Vec3b>(i, RECT_SIZE + j + 1) = BLACK;  // 设置黑色点
                     }
                     cnt++;
                 }
@@ -102,9 +102,9 @@ void DrawQRPoint(const std::vector<int>& data, cv::Mat& image)
 }
 
 // 放大图像
-cv::Mat BigMat(const cv::Mat& image)
+cv::Mat ScaleMat(const cv::Mat& image)
 {
-    int rate = 5;  // 放大倍数
+    int rate = 10;  // 放大倍数
     int BiggerSize = rate * QR_SIZE;  // 放大后的尺寸
     cv::Mat BiggerMat(BiggerSize, BiggerSize, CV_8UC3);  // 创建放大后的图像
     for (int i = 0; i < BiggerSize; i++)
@@ -118,16 +118,27 @@ cv::Mat BigMat(const cv::Mat& image)
 // 生成二维码
 void CreatQRcode(const std::string& filePath)
 {
-    cv::Mat QR(QR_SIZE, QR_SIZE, CV_8UC3, cv::Scalar::all(255));  // 创建白色背景的图像
-    cv::Mat BigQR;
-    DrowRect(QR);  // 绘制定位图案
     std::vector<int> DATA;
     OpenFile(filePath, DATA);  // 打开二进制文件并读取数据
-    DrawQRPoint(DATA, QR);  // 绘制二维码点
-    BigQR = BigMat(QR);  // 放大图像
-    cv::imwrite("code/QR.jpg", BigQR);  // 将二维码保存为图片文件
-    cv::imshow("Display Window", BigQR);  // 在窗口中显示二维码
-    cv::waitKey(0);  // 等待按键
+
+    int numQRCodes = (DATA.size() + QR_SIZE * QR_SIZE - 1) / (QR_SIZE * QR_SIZE);  // 计算生成的二维码数量
+
+    for (int i = 0; i < numQRCodes; i++)
+    {
+        cv::Mat QR(QR_SIZE, QR_SIZE, CV_8UC3, WHITE);  // 创建白色背景的图像
+        cv::Mat BigQR;
+
+        DrowRect(QR);  // 绘制定位图案
+
+        std::vector<int> subData(DATA.begin() + i * QR_SIZE * QR_SIZE, DATA.begin() + std::min<size_t>((i + 1) * QR_SIZE * QR_SIZE, DATA.size()));
+
+        DrawQRPoint(subData, QR);  // 绘制二维码点
+
+        BigQR = ScaleMat(QR);  // 放大图像
+
+        std::string fileName = "code/QR_" + std::to_string(i) + ".jpg";
+        cv::imwrite(fileName, BigQR);  // 将二维码保存为图片文件
+    }
 }
 
 int main()
@@ -136,7 +147,12 @@ int main()
     std::cout << "请输入二进制文件的路径：";
     std::cin >> filePath;
 
+    // 创建存放二维码的文件夹
+    system("mkdir code");
+
     CreatQRcode(filePath);  // 生成二维码
+
+    std::cout << "已成功将二维码存至code文件夹处" << std::endl;
 
     return 0;
 }
