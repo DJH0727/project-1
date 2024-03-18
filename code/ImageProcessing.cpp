@@ -1,5 +1,4 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include "VideoToImage.h"
 #include <opencv2/opencv.hpp>
 #include <vector>
 #include <iostream>
@@ -8,19 +7,126 @@
 #define BIG_SIZE 680
 #define BLACK Scalar(0, 0, 0, 255)
 #define WHITE Scalar(255, 255, 255, 255)
-#define RED   Scalar(0,0,255,255)//²âÊÔÓÃ
+#define RED   Scalar(0,0,255,255)//æµ‹è¯•ç”¨
 #define RECT_SIZE 18
 using namespace cv;
 using namespace std;
 
 bool QRjudge(vector<Point>& contours, Mat& mat);
-Mat QRFind(Mat &mat)
+double MinCount(Point2f rectPoints[], int flag)
 {
-	Mat outputQR= Mat::zeros(mat.size(), CV_8UC3);
+	double xmin = 1000000, ymin = 1000000;
+	for (int i = 0; i < 4; i++)
+	{
+		if (rectPoints[i].x < xmin)
+			xmin = rectPoints[i].x;
+		if (rectPoints[i].y < ymin)
+			ymin = rectPoints[i].y;
+	}
+	if (flag == 1)
+		return xmin;
+	else
+		return ymin;
+}
+double MaxCount(Point2f rectPoints[], int flag)
+{
+	double xmax = 0, ymax = 0;
+	for (int i = 0; i < 4; i++)
+	{
+		if (rectPoints[i].x > xmax)
+			xmax = rectPoints[i].x;
+		if (rectPoints[i].y > ymax)
+			ymax = rectPoints[i].y;
+	}
+	if (flag == 1)
+		return xmax;
+	else
+		return ymax;
+}
+// è®¡ç®—ä¸¤ä¸ªå‘é‡ä¹‹é—´çš„å¤¹è§’
+double angle(Point pt1, Point pt2, Point pt0) {
+	double dx1 = pt1.x - pt0.x;
+	double dy1 = pt1.y - pt0.y;
+	double dx2 = pt2.x - pt0.x;
+	double dy2 = pt2.y - pt0.y;
+	return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2));
+}
+
+vector<Point2f> detectCorners(const Mat& image, const vector<Point>& contour) {
+	// å°†è½®å»“è½¬æ¢ä¸ºçŸ©å½¢
+	Rect rect = boundingRect(contour);
+
+	// æˆªå–è½®å»“éƒ¨åˆ†çš„å›¾åƒ
+	Mat roi = image(rect);
+
+	// ä½¿ç”¨Harrisè§’ç‚¹æ£€æµ‹ç®—æ³•æ£€æµ‹è§’ç‚¹
+	Mat corners;
+	cornerHarris(roi, corners, 2, 3, 0.04);
+
+	// é€‰æ‹©è§’ç‚¹
+	vector<Point2f> cornerPoints;
+	for (int i = 0; i < corners.rows; ++i) {
+		for (int j = 0; j < corners.cols; ++j) {
+			if (corners.at<float>(i, j) > 0.01) { // è°ƒæ•´æ­¤é˜ˆå€¼ä»¥é€‚åº”ä¸åŒçš„æƒ…å†µ
+				cornerPoints.push_back(Point2f(rect.x + j, rect.y + i));
+			}
+		}
+	}
+
+	return cornerPoints;
+}
+
+// å½¢çŠ¶è¿‡æ»¤
+bool isApproxSquare(const vector<Point>& contour, double epsilon = 0.1) {
+	// å¯¹è½®å»“è¿›è¡Œå¤šè¾¹å½¢é€¼è¿‘
+	vector<Point> approx;
+	double perimeter = arcLength(contour, true);
+	approxPolyDP(contour, approx, epsilon * perimeter, true);
+
+	// æ£€æŸ¥é€¼è¿‘çš„å¤šè¾¹å½¢æ˜¯å¦æ˜¯å››è¾¹å½¢
+	if (approx.size() >= 4 && isContourConvex(approx)) {
+		// è®¡ç®—è½®å»“é¢ç§¯
+		double area = fabs(contourArea(approx));
+
+		// è®¡ç®—å‘¨é•¿
+		double perimeter = arcLength(approx, true);
+
+		// è®¡ç®—å¤šè¾¹å½¢çš„åœ†åº¦
+		double circularity = 4 * CV_PI * area / (perimeter * perimeter);
+
+		// æ ¹æ®éœ€è¦è°ƒæ•´æ­¤å¤„çš„é˜ˆå€¼
+		if (circularity >= 0.6 && circularity <= 1.4) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool QRjudge1(vector<Point>& contours, Mat& mat)
+{
+	double area = contourArea(contours);
+	if (area < 600)//è½®å»“é¢ç§¯å¤ªå°//åœ¨ç¯å¢ƒæ¯”è¾ƒæ‚çš„æƒ…å†µä¸‹
+	{
+		return 0;
+	}
+	//æ›´å…·ä½“çš„ä¼¼ä¹è¿˜å¯ä»¥ç›´æ¥åœ¨è¿™é‡Œè¿›è¡Œæ—‹è½¬æ“ä½œï¼Œä½†å…ˆä¸è¿›è¡Œ
+	if (isApproxSquare(contours))
+	{
+		vector<Point2f> cornerPoints = detectCorners(mat, contours);
+		if(cornerPoints.size() >= 3)
+		{
+			return 1;
+		}
+	}
+	else return 0;
+}
+Mat QRFind(Mat& mat)
+{
+	Mat outputQR = Mat::zeros(mat.size(), CV_8UC3);
 	vector<Point> center;
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
-	int numOfRec=0;
+	int numOfRec = 0;
 	findContours(mat, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
 	int ic = 0;
 	int parentIdx = 0;
@@ -41,11 +147,11 @@ Mat QRFind(Mat &mat)
 			ic = 0;
 		}
 		if (ic == 2)
-		{	//Í¨¹ıÍ¼Ïñ´¦Àí½øĞĞÉî²ã´ÎµÄÅĞ¶Ï
-			if (QRjudge(contours[parentIdx], mat)) {
+		{	//é€šè¿‡å›¾åƒå¤„ç†è¿›è¡Œæ·±å±‚æ¬¡çš„åˆ¤æ–­
+			if (QRjudge1(contours[parentIdx], mat)) {
 				RotatedRect rect = minAreaRect(Mat(contours[parentIdx]));
 
-				// »­Í¼²¿·Ö
+				// ç”»å›¾éƒ¨åˆ†
 				Point2f points[4];
 				rect.points(points);
 				for (int j = 0; j < 4; j++) {
@@ -53,7 +159,7 @@ Mat QRFind(Mat &mat)
 				}
 				drawContours(outputQR, contours, parentIdx, Scalar(0, 0, 255), -1);
 
-				// Èç¹ûÂú×ãÌõ¼şÔò´æÈë
+				// å¦‚æœæ»¡è¶³æ¡ä»¶åˆ™å­˜å…¥
 				center.push_back(rect.center);
 				numOfRec++;
 				imwrite("output_image.jpg", outputQR);
@@ -63,40 +169,49 @@ Mat QRFind(Mat &mat)
 		}
 	}
 	return outputQR;
-	
+
 }
-Mat ImagePreProcessing(Mat &mat)//Í¼ÏñÔ¤´¦Àí
+Mat ImagePreProcessing(Mat& mat)//å›¾åƒé¢„å¤„ç†
 {
 	Mat grayImage;
 	Mat	binaryImage;
 	Mat tempImage;
-	//×ª»Ò¶ÈÍ¼
+	//è½¬ç°åº¦å›¾
 	cvtColor(mat, grayImage, COLOR_BGR2GRAY);
 	//imwrite("output_gray_image.jpg", grayImage);
-	//½µÔë
+	//é™å™ª
 	double BlurSize = mat.rows * mat.cols;
 	blur(grayImage, tempImage, Size(3, 3));
-	//Ìá¸ß¶Ô±È¶È
+	//æé«˜å¯¹æ¯”åº¦
 	convertScaleAbs(tempImage, tempImage);
-	//Ö±·½Í¼¼ÆËã
+	//ç›´æ–¹å›¾è®¡ç®—
 	//equalizeHist(tempImage, tempImage);
-	//¶şÖµ»¯£¬Ó¦¸Ã»¹Òª½øĞĞÄ¦¶ûÎÆµÄ´¦Àí?
+	//äºŒå€¼åŒ–ï¼Œåº”è¯¥è¿˜è¦è¿›è¡Œæ‘©å°”çº¹çš„å¤„ç†?
 	threshold(grayImage, binaryImage, 0, 255, THRESH_BINARY | THRESH_OTSU);
 
 	cv::imwrite("output_binary_image.jpg", binaryImage);
 	return binaryImage;
 }
-bool QRjudge(vector<Point>& contours, Mat& mat)
+double Rate(Mat& count)
 {
-	double area = contourArea(contours);
-	if (area < 600)//ÂÖÀªÃæ»ıÌ«Ğ¡//ÔÚ»·¾³±È½ÏÔÓµÄÇé¿öÏÂ
+	int number = 0;
+	int allpixel = 0;
+	for (int row = 0; row < count.rows; row++)
 	{
-		return 0;
+		for (int col = 0; col < count.cols; col++)
+		{
+			if (count.at<uchar>(row, col) == 255)
+			{
+				number++;
+			}
+			allpixel++;
+		}
 	}
-	//¸ü¾ßÌåµÄËÆºõ»¹¿ÉÒÔÖ±½ÓÔÚÕâÀï½øĞĞĞı×ª²Ù×÷£¬µ«ÏÈ²»½øĞĞ
-	return 1;
+	//cout << (double)number / allpixel << endl;
+	return (double)number / allpixel;
 }
-Mat OutPutQR(Mat &outputQR,Mat &originalImage)//ÔÚÕâ¸öº¯Êıµ÷ÓÃÖ®Ç°Ó¦¸ÃÍê³ÉĞı×ªµÈµ÷Õû
+
+Mat OutPutQR(Mat& outputQR, Mat& originalImage)//åœ¨è¿™ä¸ªå‡½æ•°è°ƒç”¨ä¹‹å‰åº”è¯¥å®Œæˆæ—‹è½¬ç­‰è°ƒæ•´
 {
 	//Point2f rectPointsNew[3][4];
 	vector<Point> QRcontours;
@@ -105,7 +220,7 @@ Mat OutPutQR(Mat &outputQR,Mat &originalImage)//ÔÚÕâ¸öº¯Êıµ÷ÓÃÖ®Ç°Ó¦¸ÃÍê³ÉĞı×ªµÈ
 	Mat outputImage;
 	cvtColor(outputQR, tempImage, COLOR_BGR2GRAY);
 	findContours(tempImage, contours, RETR_TREE, CHAIN_APPROX_SIMPLE);
-	double Area = 0,xmax=0,ymax=0,height,width,xmaxi,ymaxi,x,y;
+	double Area = 0, xmax = 0, ymax = 0, height, width, xmaxi, ymaxi, x, y;
 	//cout << contours.size() << endl;
 	for (int i = 0; i < contours.size(); i++)
 	{
@@ -120,27 +235,31 @@ Mat OutPutQR(Mat &outputQR,Mat &originalImage)//ÔÚÕâ¸öº¯Êıµ÷ÓÃÖ®Ç°Ó¦¸ÃÍê³ÉĞı×ªµÈ
 			Area = area;
 			QRcontours = contours[i];
 		}*/
-		if (rectPoints[0].x > xmax)
+		double tempx, tempy;
+		tempx = MinCount(rectPoints, 1);
+		tempy = MinCount(rectPoints, 2);//å¯ä»¥å’Œä¹‹åçš„è¿›è¡Œä¸€ä¸ªå°ä¼˜åŒ–
+		if (tempx > xmax)
 		{
-			xmax = rectPoints[0].x;
+			xmax = tempx;
 			xmaxi = i;
 		}
-		if (rectPoints[0].y > ymax)
+		if (tempy > ymax)
 		{
-			ymax = rectPoints[0].y;
+			ymax = tempy;
 			ymaxi = i;
 		}
+		cout << tempx << endl << tempy << endl;
 	}
 	RotatedRect rectangle;
 	Point2f rectPoints[4];
 	rectangle = minAreaRect(contours[xmaxi]);
 	rectangle.points(rectPoints);
-	y = rectPoints[0].y;//×óÉÏ½ÇÊ¶±ğµãµÄy×ø±êÓë×îÓÒ±ßÊ¶±ğµã×óÉÏ½Ç×ø±êµÄyÏàÍ¬
-	xmax = rectPoints[1].x;//Êµ¼ÊÈ¡ÄÄ¸ö¿ÉÄÜ»¹Òª±È½ÏÒ»ÏÂ£¬Ä¿Ç°À´¿´ËÆºõÊÇÒÔË³Ê±ÕëÀ´È¡
+	y = MinCount(rectPoints, 2);//å·¦ä¸Šè§’è¯†åˆ«ç‚¹çš„yåæ ‡ä¸æœ€å³è¾¹è¯†åˆ«ç‚¹å·¦ä¸Šè§’åæ ‡çš„yç›¸åŒ
+	xmax = MaxCount(rectPoints, 1);//å®é™…å–å“ªä¸ªå¯èƒ½è¿˜è¦æ¯”è¾ƒä¸€ä¸‹ï¼Œç›®å‰æ¥çœ‹ä¼¼ä¹æ˜¯ä»¥é¡ºæ—¶é’ˆæ¥å–
 	rectangle = minAreaRect(contours[ymaxi]);
 	rectangle.points(rectPoints);
-	x = rectPoints[0].x;//×óÉÏ½ÇÊ¶±ğµãµÄx×ø±êÓë×îÏÂ±ßÊ¶±ğµã×óÉÏ½Ç×ø±êµÄxÏàÍ¬
-	ymax = rectPoints[3].y;
+	x = MinCount(rectPoints, 1);//å·¦ä¸Šè§’è¯†åˆ«ç‚¹çš„xåæ ‡ä¸æœ€ä¸‹è¾¹è¯†åˆ«ç‚¹å·¦ä¸Šè§’åæ ‡çš„xç›¸åŒ
+	ymax = MaxCount(rectPoints, 2);
 	height = ymax - y;
 	width = xmax - x;
 	Rect2f roi_rect(x, y, width, height);
@@ -154,9 +273,9 @@ Mat OutPutQR(Mat &outputQR,Mat &originalImage)//ÔÚÕâ¸öº¯Êıµ÷ÓÃÖ®Ç°Ó¦¸ÃÍê³ÉĞı×ªµÈ
 int main()
 {
 	Mat tempImage;
-	Mat mat = imread("test_1.png", IMREAD_COLOR);
-	tempImage=ImagePreProcessing(mat);
-	tempImage=QRFind(tempImage);
+	Mat mat = imread("test_14.jpg", IMREAD_COLOR);
+	tempImage = ImagePreProcessing(mat);
+	tempImage = QRFind(tempImage);
 	//equalizeHist(mat, mat);
 	OutPutQR(tempImage, mat);
 
