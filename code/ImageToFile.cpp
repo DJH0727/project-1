@@ -3,47 +3,49 @@
 #include <fstream>
 
 
-#define QR_SIZE 64  // ¶şÎ¬ÂëµÄ´óĞ¡
-#define RECT_SIZE 12  // ¶¨Î»Í¼°¸µÄ´óĞ¡
+#define QR_SIZE 64*10  // äºŒç»´ç çš„å¤§å°
+#define RECT_SIZE 12*10  // å®šä½å›¾æ¡ˆçš„å¤§å°
+#define COLOR_THRESHOLD 128  // é¢œè‰²é˜ˆå€¼
 
-// ´Ó¶şÎ¬ÂëÍ¼Æ¬ÖĞ¶ÁÈ¡Êı¾İ²¢×ª»»Îª¶ş½øÖÆ´®
+// ä»äºŒç»´ç å›¾ç‰‡ä¸­è¯»å–æ•°æ®å¹¶è½¬æ¢ä¸ºäºŒè¿›åˆ¶ä¸²
 void ExtractQRCode(const std::string& filePath, std::vector<int>& data)
 {
-    cv::Mat image = cv::imread(filePath); // ¶ÁÈ¡¶şÎ¬ÂëÍ¼Æ¬
+    cv::Mat image = cv::imread(filePath); // è¯»å–äºŒç»´ç å›¾ç‰‡
 
     
-    cv::resize(image, image, cv::Size(QR_SIZE, QR_SIZE));// opencvËõĞ¡Í¼Æ¬³ß´çº¯Êı
+    cv::resize(image, image, cv::Size(QR_SIZE, QR_SIZE));// opencvç¼©å°å›¾ç‰‡å°ºå¯¸å‡½æ•°
 
-    for (int i = 0; i < QR_SIZE; ++i) {
-        for (int j = 0; j < QR_SIZE; ++j) {
+    for (int i = 0; i < QR_SIZE; i=i+10) {
+        for (int j = 0; j < QR_SIZE; j=j+10) {
             cv::Vec3b pixel = image.at<cv::Vec3b>(i, j);
 
             if ((i < RECT_SIZE && j < RECT_SIZE) ||
                 (i < RECT_SIZE && j >= QR_SIZE - RECT_SIZE) ||
                 (i >= QR_SIZE - RECT_SIZE && j < RECT_SIZE)) {
-                continue; // Ìø¹ı¶¨Î»µã
+                continue; // è·³è¿‡å®šä½ç‚¹
             }
-            if (pixel == cv::Vec3b(0, 0, 0)) {
-                data.push_back(1); // ºÚÉ«ÏñËØ¶ÔÓ¦¶ş½øÖÆÖĞµÄ1
+            int grayscale = (pixel[0] + pixel[1] + pixel[2]) / 3; // ç°åº¦å€¼ä¸ºRGBåˆ†é‡çš„å¹³å‡å€¼
+            if (grayscale > COLOR_THRESHOLD) {
+                data.push_back(1); // é»‘è‰²åƒç´ å¯¹åº”äºŒè¿›åˆ¶ä¸­çš„1
             }
             else {
-                data.push_back(0); // °×É«ÏñËØ¶ÔÓ¦¶ş½øÖÆÖĞµÄ0
+                data.push_back(0); // ç™½è‰²åƒç´ å¯¹åº”äºŒè¿›åˆ¶ä¸­çš„0
             }
         }
     }
 }
 
-// Êä³ö¶ş½øÖÆ´®µ½ÆÁÄ»
+// è¾“å‡ºäºŒè¿›åˆ¶ä¸²åˆ°å±å¹•
 void PrintBinaryData(const std::vector<int>& data)
 {
-    std::cout << "¶şÎ¬ÂëµÄ¶ş½øÖÆ´®£º" << std::endl;
+    std::cout << "äºŒç»´ç çš„äºŒè¿›åˆ¶ä¸²ï¼š" << std::endl;
     for (int bit : data) {
         std::cout << bit;
     }
     std::cout << std::endl;
 }
 
-// ½«¶ş½øÖÆÊı¾İĞ´ÈëÎÄ¼ş
+// å°†äºŒè¿›åˆ¶æ•°æ®å†™å…¥æ–‡ä»¶
 void WriteBinaryDataToFile(const std::string& filePath, const std::vector<int>& data)
 {
     std::ofstream file(filePath);
@@ -62,17 +64,17 @@ void WriteBinaryDataToFile(const std::string& filePath, const std::vector<int>& 
 int main()
 {
     std::string filePath;
-    std::cout << "ÇëÊäÈë¶şÎ¬ÂëÍ¼Æ¬µÄÂ·¾¶£º";
+    std::cout << "è¯·è¾“å…¥äºŒç»´ç å›¾ç‰‡çš„è·¯å¾„ï¼š";
     std::cin >> filePath;
 
     std::vector<int> binaryData;
-    ExtractQRCode(filePath, binaryData); // ´Ó¶şÎ¬ÂëÍ¼Æ¬ÖĞÌáÈ¡Êı¾İ
+    ExtractQRCode(filePath, binaryData); // ä»äºŒç»´ç å›¾ç‰‡ä¸­æå–æ•°æ®
 
-    PrintBinaryData(binaryData); // Êä³ö¶ş½øÖÆ´®µ½ÆÁÄ»
+    PrintBinaryData(binaryData); // è¾“å‡ºäºŒè¿›åˆ¶ä¸²åˆ°å±å¹•
 
-    std::string outputFilePath = "output.txt"; // ÎÄ¼şÊä³öÂ·¾¶
-    WriteBinaryDataToFile(outputFilePath, binaryData); // ½«¶ş½øÖÆÊı¾İĞ´ÈëÎÄ¼ş
+    std::string outputFilePath = "output.txt"; // æ–‡ä»¶è¾“å‡ºè·¯å¾„
+    WriteBinaryDataToFile(outputFilePath, binaryData); // å°†äºŒè¿›åˆ¶æ•°æ®å†™å…¥æ–‡ä»¶
 
-    std::cout << "ÒÑ³É¹¦½«¶şÎ¬ÂëÊı¾İĞ´ÈëÎÄ¼ş£ºoutput.txt" <<std::endl;
+    std::cout << "å·²æˆåŠŸå°†äºŒç»´ç æ•°æ®å†™å…¥æ–‡ä»¶ï¼šoutput.txt" <<std::endl;
     return 0;
 }
