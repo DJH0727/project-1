@@ -18,14 +18,10 @@ int OpenFile(const std::string& filePath, std::vector<int>& data)
 
     char c;
     while (file.get(c)) {
-        if (c == '0') {
-            data.push_back(0);
-        }
-        else if (c == '1') {
-            data.push_back(1);
+        for (int i = 7; i >= 0; --i) {
+            data.push_back((c >> i) & 1);
         }
     }
-
     file.close();
 
     return 0;
