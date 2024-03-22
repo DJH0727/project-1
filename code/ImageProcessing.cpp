@@ -1,16 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS
-#include <opencv2/opencv.hpp>
-#include <vector>
-#include <iostream>
-
-#define QR_SIZE 136
-#define BIG_SIZE 680
-#define BLACK Scalar(0, 0, 0, 255)
-#define WHITE Scalar(255, 255, 255, 255)
-#define RED   Scalar(0,0,255,255)//测试用
-#define RECT_SIZE 18
-using namespace cv;
-using namespace std;
+#include "2.h"
 
 bool QRjudge(vector<Point>& contours, Mat& mat);
 double MinCount(Point2f rectPoints[], int flag)
@@ -77,9 +65,10 @@ vector<Point2f> detectCorners(const Mat& image, const vector<Point>& contour) {
 }
 
 // 形状过滤
-bool isApproxSquare(const vector<Point>& contour, double epsilon = 0.1) {
+bool isApproxSquare(const vector<Point>& contour) {
 	// 对轮廓进行多边形逼近
 	vector<Point> approx;
+	double epsilon = 0.1;
 	double perimeter = arcLength(contour, true);
 	approxPolyDP(contour, approx, epsilon * perimeter, true);
 
@@ -113,14 +102,14 @@ bool QRjudge1(vector<Point>& contours, Mat& mat)
 	if (isApproxSquare(contours))
 	{
 		vector<Point2f> cornerPoints = detectCorners(mat, contours);
-		if(cornerPoints.size() >= 3)
+		if (cornerPoints.size() >= 3)
 		{
 			return 1;
 		}
 	}
 	else return 0;
 }
-Mat QRFind(Mat& mat)
+Mat QRFind(Mat& mat,int &flag)
 {
 	Mat outputQR = Mat::zeros(mat.size(), CV_8UC3);
 	vector<Point> center;
@@ -161,6 +150,7 @@ Mat QRFind(Mat& mat)
 
 				// 如果满足条件则存入
 				center.push_back(rect.center);
+				flag = 1;
 				numOfRec++;
 				imwrite("output_image.jpg", outputQR);
 			}
@@ -191,24 +181,6 @@ Mat ImagePreProcessing(Mat& mat)//图像预处理
 
 	cv::imwrite("output_binary_image.jpg", binaryImage);
 	return binaryImage;
-}
-double Rate(Mat& count)
-{
-	int number = 0;
-	int allpixel = 0;
-	for (int row = 0; row < count.rows; row++)
-	{
-		for (int col = 0; col < count.cols; col++)
-		{
-			if (count.at<uchar>(row, col) == 255)
-			{
-				number++;
-			}
-			allpixel++;
-		}
-	}
-	//cout << (double)number / allpixel << endl;
-	return (double)number / allpixel;
 }
 
 Mat OutPutQR(Mat& outputQR, Mat& originalImage)//在这个函数调用之前应该完成旋转等调整
@@ -270,14 +242,23 @@ Mat OutPutQR(Mat& outputQR, Mat& originalImage)//在这个函数调用之前应�
 	imwrite("output_new_updated_image.jpg", new_image);
 	return new_image;
 }
-int main()
+int FuckingShit()
 {
+	int flag = 0;
+	char image[256], imageName[256];
+	char format[256], imageFormat[256];
+	cin >> imageName;
+	cin >> imageFormat;
+	snprintf(image, 256, "%s.%s", imageName, imageFormat);
+	snprintf(format, 256, ".%s", imageFormat);
 	Mat tempImage;
-	Mat mat = imread("test_14.jpg", IMREAD_COLOR);
+	Mat mat = imread(image, IMREAD_COLOR);
 	tempImage = ImagePreProcessing(mat);
-	tempImage = QRFind(tempImage);
+	tempImage = QRFind(tempImage,flag);
+	if (!flag)
+		return 0;
 	//equalizeHist(mat, mat);
 	OutPutQR(tempImage, mat);
 
-	return 0;
+	return 1;
 }
