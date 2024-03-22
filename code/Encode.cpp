@@ -6,10 +6,10 @@
 #include <cstring>
 #include <cstdio>
 
-#define QR_SIZE 128  // ¶¨Òå¶şÎ¬ÂëµÄ´óĞ¡
-#define BLACK cv::Vec3b(0, 0, 0)  // ¶¨ÒåÑÕÉ«ºÚÉ«
-#define WHITE cv::Vec3b(255, 255, 255)  // ¶¨ÒåÑÕÉ«°×É«
-#define RECT_SIZE 18  // ¶¨Òå¶¨Î»Í¼°¸µÄ´óĞ¡
+#define QR_SIZE 128  // å®šä¹‰äºŒç»´ç çš„å¤§å°
+#define BLACK cv::Vec3b(0, 0, 0)  // å®šä¹‰é¢œè‰²é»‘è‰²
+#define WHITE cv::Vec3b(255, 255, 255)  // å®šä¹‰é¢œè‰²ç™½è‰²
+#define RECT_SIZE 18  // å®šä¹‰å®šä½å›¾æ¡ˆçš„å¤§å°
 
 int OpenFile(const std::string& filePath, std::vector<int>& data);
 void DrawRect(cv::Mat& image);
@@ -19,7 +19,7 @@ void CreatQRcode(const std::string& filePath);
 int ImagetoVideo(const char* ffmPath, unsigned int videofps, const char* imagePath,
     const char* imageFormat, const char* videoOutput, unsigned int bitRates);
 
-// ´ò¿ª¶ş½øÖÆÎÄ¼ş²¢¶ÁÈ¡Êı¾İ
+//è¯»å–æ–‡ä»¶äºŒè¿›åˆ¶æ•°æ®
 int OpenFile(const std::string& filePath, std::vector<int>& data)
 {
     std::ifstream file(filePath, std::ios::binary);
@@ -27,13 +27,11 @@ int OpenFile(const std::string& filePath, std::vector<int>& data)
         return 1;
     }
 
-    char c;
-    while (file.get(c)) {
-        if (c == '0') {
-            data.push_back(0);
-        }
-        else if (c == '1') {
-            data.push_back(1);
+    // é€ä½è¯»å–æ–‡ä»¶å†…å®¹å¹¶è½¬æ¢ä¸º0å’Œ1
+    char byte;
+    while (file.get(byte)) {
+        for (int i = 7; i >= 0; --i) {
+            data.push_back((byte >> i) & 1);
         }
     }
 
@@ -42,11 +40,11 @@ int OpenFile(const std::string& filePath, std::vector<int>& data)
     return 0;
 }
 
-// »æÖÆ¶¨Î»Í¼°¸
+// ç»˜åˆ¶å®šä½å›¾æ¡ˆ
 void DrawRect(cv::Mat& image)
 {
-    int BorderSize = RECT_SIZE / 9;  // ±ß¿ò´óĞ¡
-    int axis[3][2] = { {0, 0},{QR_SIZE - RECT_SIZE - 1, 0},{0, QR_SIZE - RECT_SIZE - 1} }; // ×óÉÏ½Ç¡¢ÓÒÉÏ½Ç¡¢×óÏÂ½Ç
+    int BorderSize = RECT_SIZE / 9;  // è¾¹æ¡†å¤§å°
+    int axis[3][2] = { {0, 0},{QR_SIZE - RECT_SIZE - 1, 0},{0, QR_SIZE - RECT_SIZE - 1} }; // å·¦ä¸Šè§’ã€å³ä¸Šè§’ã€å·¦ä¸‹è§’
     for (int j = 0; j < 3; j++)
     {
         int x = axis[j][0], y = axis[j][1];
@@ -54,20 +52,20 @@ void DrawRect(cv::Mat& image)
         for (int i = 0; i <= 3; i++)
         {
             if (i % 2 == 0)
-                cv::rectangle(image, cv::Point(x + i * BorderSize, y + i * BorderSize), cv::Point(x + RECT_SIZE - i * BorderSize, y + RECT_SIZE - i * BorderSize), WHITE, -1);  // »æÖÆ°×É«·½¿é
+                cv::rectangle(image, cv::Point(x + i * BorderSize, y + i * BorderSize), cv::Point(x + RECT_SIZE - i * BorderSize, y + RECT_SIZE - i * BorderSize), WHITE, -1);  // ç»˜åˆ¶ç™½è‰²æ–¹å—
             else
-                cv::rectangle(image, cv::Point(x + i * BorderSize, y + i * BorderSize), cv::Point(x + RECT_SIZE - i * BorderSize, y + RECT_SIZE - i * BorderSize), BLACK, -1);  // »æÖÆºÚÉ«·½¿é
+                cv::rectangle(image, cv::Point(x + i * BorderSize, y + i * BorderSize), cv::Point(x + RECT_SIZE - i * BorderSize, y + RECT_SIZE - i * BorderSize), BLACK, -1);  // ç»˜åˆ¶é»‘è‰²æ–¹å—
         }
     }
 }
 
-// ´ÓÉÏÍùÏÂ»æÖÆ¶şÎ¬Âëµã
+// ä»ä¸Šå¾€ä¸‹ç»˜åˆ¶äºŒç»´ç ç‚¹
 void DrawQRPoint(const std::vector<int>& data, cv::Mat& image)
 {
     int cnt = 0;
     for (int i = 0; i < QR_SIZE - RECT_SIZE / 9; i++)
     {
-        if (i <= RECT_SIZE) // ÔÚÁ½¸ö¶¨Î»Í¼°¸Ö®¼ä
+        if (i <= RECT_SIZE) // åœ¨ä¸¤ä¸ªå®šä½å›¾æ¡ˆä¹‹é—´
         {
             for (int j = 0; j < QR_SIZE - 2 * RECT_SIZE - 2; j++)
             {
@@ -75,13 +73,13 @@ void DrawQRPoint(const std::vector<int>& data, cv::Mat& image)
                 {
                     if (data[cnt] == 1)
                     {
-                        image.at<cv::Vec3b>(RECT_SIZE / 9 + i, RECT_SIZE + j + 1) = BLACK;  // ÉèÖÃºÚÉ«µã
+                        image.at<cv::Vec3b>(RECT_SIZE / 9 + i, RECT_SIZE + j + 1) = BLACK;  // è®¾ç½®é»‘è‰²ç‚¹
                     }
                     cnt++;
                 }
             }
         }
-        else if (i > RECT_SIZE && i <= QR_SIZE - RECT_SIZE - RECT_SIZE / 9) // Í¼ÏñÖĞ¼ä²¿·Ö
+        else if (i > RECT_SIZE && i <= QR_SIZE - RECT_SIZE - RECT_SIZE / 9) // å›¾åƒä¸­é—´éƒ¨åˆ†
         {
             for (int j = 0; j < QR_SIZE - 2 * RECT_SIZE / 9; j++)
             {
@@ -89,13 +87,13 @@ void DrawQRPoint(const std::vector<int>& data, cv::Mat& image)
                 {
                     if (data[cnt] == 1)
                     {
-                        image.at<cv::Vec3b>(i, RECT_SIZE / 9 + j) = BLACK;  // ÉèÖÃºÚÉ«µã
+                        image.at<cv::Vec3b>(i, RECT_SIZE / 9 + j) = BLACK;  // è®¾ç½®é»‘è‰²ç‚¹
                     }
                     cnt++;
                 }
             }
         }
-        else // µ×²¿ÓÒ²à¶¨Î»Í¼°¸µÄÖĞ¼ä²¿·Ö
+        else // åº•éƒ¨å³ä¾§å®šä½å›¾æ¡ˆçš„ä¸­é—´éƒ¨åˆ†
         {
             for (int j = 0; j < QR_SIZE - RECT_SIZE - RECT_SIZE / 9 - 1; j++)
             {
@@ -103,7 +101,7 @@ void DrawQRPoint(const std::vector<int>& data, cv::Mat& image)
                 {
                     if (data[cnt] == 1)
                     {
-                        image.at<cv::Vec3b>(i, RECT_SIZE + j + 1) = BLACK;  // ÉèÖÃºÚÉ«µã
+                        image.at<cv::Vec3b>(i, RECT_SIZE + j + 1) = BLACK;  // è®¾ç½®é»‘è‰²ç‚¹
                     }
                     cnt++;
                 }
@@ -112,43 +110,43 @@ void DrawQRPoint(const std::vector<int>& data, cv::Mat& image)
     }
 }
 
-// ·Å´óÍ¼Ïñ
+// æ”¾å¤§å›¾åƒ
 cv::Mat ScaleMat(const cv::Mat& image)
 {
-    int rate = 10;  // ·Å´ó±¶Êı
-    int BiggerSize = rate * QR_SIZE;  // ·Å´óºóµÄ³ß´ç
-    cv::Mat BiggerMat(BiggerSize, BiggerSize, CV_8UC3);  // ´´½¨·Å´óºóµÄÍ¼Ïñ
+    int rate = 10;  // æ”¾å¤§å€æ•°
+    int BiggerSize = rate * QR_SIZE;  // æ”¾å¤§åçš„å°ºå¯¸
+    cv::Mat BiggerMat(BiggerSize, BiggerSize, CV_8UC3);  // åˆ›å»ºæ”¾å¤§åçš„å›¾åƒ
     for (int i = 0; i < BiggerSize; i++)
     {
         for (int j = 0; j < BiggerSize; j++)
-            BiggerMat.at<cv::Vec3b>(i, j) = image.at<cv::Vec3b>(i / rate, j / rate);  // ¸ù¾İ·Å´ó±¶Êı½øĞĞ²åÖµ·Å´ó
+            BiggerMat.at<cv::Vec3b>(i, j) = image.at<cv::Vec3b>(i / rate, j / rate);  // æ ¹æ®æ”¾å¤§å€æ•°è¿›è¡Œæ’å€¼æ”¾å¤§
     }
     return BiggerMat;
 }
 
-// Éú³É¶şÎ¬Âë
+// ç”ŸæˆäºŒç»´ç 
 void CreatQRcode(const std::string& filePath)
 {
     std::vector<int> DATA;
-    OpenFile(filePath, DATA);  // ´ò¿ª¶ş½øÖÆÎÄ¼ş²¢¶ÁÈ¡Êı¾İ
+    OpenFile(filePath, DATA);  // æ‰“å¼€äºŒè¿›åˆ¶æ–‡ä»¶å¹¶è¯»å–æ•°æ®
 
-    int numQRCodes = (DATA.size() + QR_SIZE * QR_SIZE - 1) / (QR_SIZE * QR_SIZE);  // ¼ÆËãÉú³ÉµÄ¶şÎ¬ÂëÊıÁ¿
+    int numQRCodes = (DATA.size() + QR_SIZE * QR_SIZE - 1) / (QR_SIZE * QR_SIZE);  // è®¡ç®—ç”Ÿæˆçš„äºŒç»´ç æ•°é‡
 
     for (int i = 0; i < numQRCodes; i++)
     {
-        cv::Mat QR(QR_SIZE, QR_SIZE, CV_8UC3, WHITE);  // ´´½¨°×É«±³¾°µÄÍ¼Ïñ
+        cv::Mat QR(QR_SIZE, QR_SIZE, CV_8UC3, WHITE);  // åˆ›å»ºç™½è‰²èƒŒæ™¯çš„å›¾åƒ
         cv::Mat BigQR;
 
-        DrawRect(QR);  // »æÖÆ¶¨Î»Í¼°¸
+        DrawRect(QR);  // ç»˜åˆ¶å®šä½å›¾æ¡ˆ
 
         std::vector<int> subData(DATA.begin() + i * QR_SIZE * QR_SIZE, DATA.begin() + std::min<size_t>((i + 1) * QR_SIZE * QR_SIZE, DATA.size()));
 
-        DrawQRPoint(subData, QR);  // »æÖÆ¶şÎ¬Âëµã
+        DrawQRPoint(subData, QR);  // ç»˜åˆ¶äºŒç»´ç ç‚¹
 
-        BigQR = ScaleMat(QR);  // ·Å´óÍ¼Ïñ
+        BigQR = ScaleMat(QR);  // æ”¾å¤§å›¾åƒ
 
         std::string fileName = "code\\" + std::to_string(i) + ".jpg";
-        cv::imwrite(fileName, BigQR);  // ½«¶şÎ¬Âë±£´æÎªÍ¼Æ¬ÎÄ¼ş
+        cv::imwrite(fileName, BigQR);  // å°†äºŒç»´ç ä¿å­˜ä¸ºå›¾ç‰‡æ–‡ä»¶
     }
 }
 
@@ -166,24 +164,24 @@ int main()
 {
     std::string filePath, videoOutput;
     unsigned int videoLength, videoFps;
-    std::cout << "ÇëÊäÈë¶ş½øÖÆÎÄ¼şµÄÂ·¾¶£º";
+    std::cout << "è¯·è¾“å…¥äºŒè¿›åˆ¶æ–‡ä»¶çš„è·¯å¾„ï¼š";
     std::cin >> filePath;
-    std::cout << "ÇëÊäÈëÊÓÆµÊä³öÂ·¾¶£º";
+    std::cout << "è¯·è¾“å…¥è§†é¢‘è¾“å‡ºè·¯å¾„ï¼š";
     std::cin >> videoOutput;
-    std::cout << "ÇëÊäÈëÊä³öÊÓÆµ³¤¶È£¨Ãë£©£º";
+    std::cout << "è¯·è¾“å…¥è¾“å‡ºè§†é¢‘é•¿åº¦ï¼ˆç§’ï¼‰ï¼š";
     std::cin >> videoLength;
-    std::cout << "ÇëÊäÈëÊä³öÊÓÆµÖ¡ÂÊ£º";
+    std::cout << "è¯·è¾“å…¥è¾“å‡ºè§†é¢‘å¸§ç‡ï¼š";
     std::cin >> videoFps;
 
-    // ´´½¨´æ·Å¶şÎ¬ÂëµÄÎÄ¼ş¼Ğ
+    // åˆ›å»ºå­˜æ”¾äºŒç»´ç çš„æ–‡ä»¶å¤¹
     system("mkdir code");
 
-    CreatQRcode(filePath);  // Éú³É¶şÎ¬Âë
+    CreatQRcode(filePath);  // ç”ŸæˆäºŒç»´ç 
 
-    // ½«Éú³ÉµÄ¶şÎ¬ÂëÍ¼Æ¬×ª»»³ÉÊÓÆµ
+    // å°†ç”Ÿæˆçš„äºŒç»´ç å›¾ç‰‡è½¬æ¢æˆè§†é¢‘
     ImagetoVideo("", videoFps, "code", "jpg", videoOutput.c_str(), 2000);
 
-    std::cout << "ÒÑ³É¹¦½«¶şÎ¬Âë´æÖÁcodeÎÄ¼ş¼Ğ´¦£¬²¢×ª»»ÎªÊÓÆµ²¢±£´æÖÁÖ¸¶¨Â·¾¶" << std::endl;
+    std::cout << "å·²æˆåŠŸå°†äºŒç»´ç å­˜è‡³codeæ–‡ä»¶å¤¹å¤„ï¼Œå¹¶è½¬æ¢ä¸ºè§†é¢‘å¹¶ä¿å­˜è‡³æŒ‡å®šè·¯å¾„" << std::endl;
 
     return 0;
 }
