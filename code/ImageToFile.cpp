@@ -13,11 +13,11 @@ void ExtractQRCode(const std::string& filePath, std::vector<int>& data)
     cv::Mat image = cv::imread(filePath); // 读取二维码图片
 
     
-    cv::resize(image, image, cv::Size(QR_SIZE, QR_SIZE));// opencv缩小图片尺寸函数
+    cv::resize(image, image, cv::Size(QR_SIZE, QR_SIZE));// opencv扩大图片尺寸函数
 
     for (int i = 0; i < QR_SIZE; i=i+10) {
         for (int j = 0; j < QR_SIZE; j=j+10) {
-            cv::Vec3b pixel = image.at<cv::Vec3b>(i, j);
+            cv::Vec3b pixel = image.at<cv::Vec3b>(i, j);//这里之后会增加一个平均数识别
 
             if ((i < RECT_SIZE && j < RECT_SIZE) ||
                 (i < RECT_SIZE && j >= QR_SIZE - RECT_SIZE) ||
