@@ -14,22 +14,24 @@ void ExtractQRCode(const std::string& filePath, std::vector<int>& data)
 
 
     cv::resize(image, image, cv::Size(QR_SIZE, QR_SIZE));// opencv缩小图片尺寸函数
+    int borderSize = RECT_SIZE / 9;
 
-    for (int i = 0; i < QR_SIZE; i++) {
-        for (int j = 0; j < QR_SIZE; j++) {
+    for (int i = borderSize; i < QR_SIZE - borderSize; i++) {
+        for (int j = borderSize; j < QR_SIZE - borderSize; j++) {
+            // 跳过定位图案区域
             cv::Vec3b pixel = image.at<cv::Vec3b>(i, j);
-
             if ((i < RECT_SIZE && j < RECT_SIZE) ||
                 (i < RECT_SIZE && j >= QR_SIZE - RECT_SIZE) ||
                 (i >= QR_SIZE - RECT_SIZE && j < RECT_SIZE)) {
-                continue; // 跳过定位点
+                continue;
             }
+
             int grayscale = (pixel[0] + pixel[1] + pixel[2]) / 3; // 灰度值为RGB分量的平均值
             if (grayscale > COLOR_THRESHOLD) {
-                data.push_back(1); // 黑色像素对应二进制中的1
+                data.push_back(0); // 黑色像素对应二进制中的1
             }
             else {
-                data.push_back(0); // 白色像素对应二进制中的0
+                data.push_back(1); // 白色像素对应二进制中的0
             }
         }
     }
