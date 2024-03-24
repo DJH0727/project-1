@@ -1,7 +1,7 @@
+//更改功能，读取code文件夹中所有二维码，写入output.txt,但解码部分对不上
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <fstream>
-
 
 #define QR_SIZE 64  // 二维码的大小
 #define RECT_SIZE 12  // 定位图案的大小
@@ -10,41 +10,30 @@
 // 从二维码图片中读取数据并转换为二进制串
 void ExtractQRCode(const std::string& filePath, std::vector<int>& data)
 {
-    cv::Mat image = cv::imread(filePath); // 读取二维码图片
+    cv::Mat image = cv::imread(filePath, cv::IMREAD_GRAYSCALE); // 读取二维码图片并转换为灰度图像
 
-
-    cv::resize(image, image, cv::Size(QR_SIZE, QR_SIZE));// opencv缩小图片尺寸函数
+    cv::resize(image, image, cv::Size(QR_SIZE, QR_SIZE)); // 调整图像尺寸为二维码大小
     int borderSize = RECT_SIZE / 9;
 
-    for (int i = borderSize; i < QR_SIZE - borderSize; i++) {
-        for (int j = borderSize; j < QR_SIZE - borderSize; j++) {
+    for (int i = borderSize - 1; i <= QR_SIZE - borderSize; i++) {
+        for (int j = borderSize - 1; j <= QR_SIZE - borderSize; j++) {
             // 跳过定位图案区域
-            cv::Vec3b pixel = image.at<cv::Vec3b>(i, j);
-            if ((i < RECT_SIZE && j < RECT_SIZE) ||
-                (i < RECT_SIZE && j >= QR_SIZE - RECT_SIZE) ||
-                (i >= QR_SIZE - RECT_SIZE && j < RECT_SIZE)) {
+            if ((i < RECT_SIZE + borderSize && j < RECT_SIZE + borderSize) ||
+                (i < RECT_SIZE + borderSize && j >= QR_SIZE - RECT_SIZE + borderSize) ||
+                (i >= QR_SIZE - RECT_SIZE + borderSize && j < RECT_SIZE + borderSize)) {
                 continue;
             }
 
-            int grayscale = (pixel[0] + pixel[1] + pixel[2]) / 3; // 灰度值为RGB分量的平均值
-            if (grayscale > COLOR_THRESHOLD) {
-                data.push_back(0); // 黑色像素对应二进制中的1
+            uchar pixel = image.at<uchar>(i, j); // 获取灰度图像中的像素值
+
+            if (pixel > COLOR_THRESHOLD) {
+                data.push_back(1); // 黑色像素对应二进制中的1
             }
             else {
-                data.push_back(1); // 白色像素对应二进制中的0
+                data.push_back(0); // 白色像素对应二进制中的0
             }
         }
     }
-}
-
-// 输出二进制串到屏幕
-void PrintBinaryData(const std::vector<int>& data)
-{
-    std::cout << "二维码的二进制串：" << std::endl;
-    for (int bit : data) {
-        std::cout << bit;
-    }
-    std::cout << std::endl;
 }
 
 // 将二进制数据写入文件（在文件末尾继续写入）
@@ -66,18 +55,20 @@ void WriteBinaryDataToFile(const std::string& filePath, const std::vector<int>& 
 
 int main()
 {
-    std::string filePath;
-    std::cout << "请输入二维码图片的路径：";
-    std::cin >> filePath;
+    // 遍历code文件夹中的所有文件
+    std::string folderPath = "code/";
+    std::vector<cv::String> fileNames;
+    cv::glob(folderPath, fileNames);
 
-    std::vector<int> binaryData;
-    ExtractQRCode(filePath, binaryData); // 从二维码图片中提取数据
+    // 遍历每个文件并解码
+    for (const auto& fileName : fileNames) {
+        std::vector<int> binaryData;
+        ExtractQRCode(fileName, binaryData); // 从二维码图片中提取数据
 
-    PrintBinaryData(binaryData); // 输出二进制串到屏幕
-
-    std::string outputFilePath = "output.txt"; // 文件输出路径
-    WriteBinaryDataToFile(outputFilePath, binaryData); // 将二进制数据写入文件
-
-    std::cout << "已成功将二维码数据写入文件：output.txt" << std::endl;
+        // 写入解码数据到 output.txt
+        WriteBinaryDataToFile(folderPath + "output.txt", binaryData);
+        
+    }
+    std::cout << "已成功将解码的二维码数据写入文件：output.txt" << std::endl;
     return 0;
 }
