@@ -1,5 +1,4 @@
 //更改功能，读取code文件夹中所有二维码，写入output.txt,但解码部分对不上
-#include <iostream>
 #include <opencv2/opencv.hpp>
 #include <fstream>
 
@@ -10,7 +9,7 @@
 // 从二维码图片中读取数据并转换为二进制串
 void ExtractQRCode(const std::string& filePath, std::vector<int>& data)
 {
-    cv::Mat image = cv::imread(filePath, cv::IMREAD_GRAYSCALE); // 读取二维码图片并转换为灰度图像
+    cv::Mat image = cv::imread(filePath); // 读取二维码图片
 
     cv::resize(image, image, cv::Size(QR_SIZE, QR_SIZE)); // 调整图像尺寸为二维码大小
     int borderSize = RECT_SIZE / 9;
@@ -23,10 +22,10 @@ void ExtractQRCode(const std::string& filePath, std::vector<int>& data)
                 (i >= QR_SIZE - RECT_SIZE + borderSize && j < RECT_SIZE + borderSize)) {
                 continue;
             }
+            cv::Vec3b pixel = image.at<cv::Vec3b>(i, j);
 
-            uchar pixel = image.at<uchar>(i, j); // 获取灰度图像中的像素值
-
-            if (pixel > COLOR_THRESHOLD) {
+            int grayscale = (pixel[0] + pixel[1] + pixel[2]) / 3; // 灰度值为RGB分量的平均值
+            if (grayscale > COLOR_THRESHOLD) {
                 data.push_back(1); // 黑色像素对应二进制中的1
             }
             else {
@@ -67,8 +66,9 @@ int main()
 
         // 写入解码数据到 output.txt
         WriteBinaryDataToFile(folderPath + "output.txt", binaryData);
-        
+
     }
     std::cout << "已成功将解码的二维码数据写入文件：output.txt" << std::endl;
+
     return 0;
 }
