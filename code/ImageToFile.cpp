@@ -1,7 +1,6 @@
-//更改功能，读取code文件夹中所有二维码，写入output.txt,但解码部分对不上
 #include <opencv2/opencv.hpp>
 #include <fstream>
-
+#include <vector>
 #define QR_SIZE 64  // 二维码的大小
 #define RECT_SIZE 12  // 定位图案的大小
 #define COLOR_THRESHOLD 128  // 颜色阈值
@@ -35,18 +34,24 @@ void ExtractQRCode(const std::string& filePath, std::vector<int>& data)
     }
 }
 
-// 将二进制数据写入文件（在文件末尾继续写入）
-void WriteBinaryDataToFile(const std::string& filePath, const std::vector<int>& data)
+
+
+
+
+// 将二进制数据写入二进制文件
+void WriteBinaryDataToBinFile(const std::string& filePath, const std::vector<int>& data)
 {
-    std::ofstream file(filePath, std::ios::app); // 打开文件，追加模式
+    std::ofstream file(filePath, std::ios::binary); // 以二进制模式打开文件
 
     if (!file.is_open()) {
         std::cerr << "Error: Unable to open file for writing." << std::endl;
         return;
     }
 
+    // 将二进制数据写入文件
     for (int bit : data) {
-        file << bit;
+        char byte = static_cast<char>(bit);
+        file.write(&byte, sizeof(char));
     }
 
     file.close();
@@ -54,21 +59,17 @@ void WriteBinaryDataToFile(const std::string& filePath, const std::vector<int>& 
 
 int main()
 {
-    // 遍历code文件夹中的所有文件
     std::string folderPath = "code/";
     std::vector<cv::String> fileNames;
     cv::glob(folderPath, fileNames);
 
-    // 遍历每个文件并解码
     for (const auto& fileName : fileNames) {
         std::vector<int> binaryData;
-        ExtractQRCode(fileName, binaryData); // 从二维码图片中提取数据
+        ExtractQRCode(fileName, binaryData);
 
-        // 写入解码数据到 output.txt
-        WriteBinaryDataToFile(folderPath + "output.txt", binaryData);
-
+        std::string outputFilePath = folderPath + "output.bin";
+        WriteBinaryDataToBinFile(outputFilePath, binaryData);
     }
-    std::cout << "已成功将解码的二维码数据写入文件：output.txt" << std::endl;
-
+    std::cout << "已成功将解码的二维码数据写入code文件夹output.bin文件"  << std::endl;
     return 0;
 }
