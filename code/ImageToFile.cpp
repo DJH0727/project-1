@@ -1,14 +1,19 @@
 #include <opencv2/opencv.hpp>
 #include <fstream>
 #include <vector>
+#include <iostream>
+
 #define QR_SIZE 64  // 二维码的大小
 #define RECT_SIZE 12  // 定位图案的大小
-#define COLOR_THRESHOLD 128  // 颜色阈值
+#define colorThreshold 128
 
 // 从二维码图片中读取数据并转换为二进制串
-void ExtractQRCode(const std::string& filePath, std::vector<int>& data)
-{
+void ExtractQRCode(const std::string& filePath, std::vector<int>& data) {
     cv::Mat image = cv::imread(filePath); // 读取二维码图片
+    if (image.empty()) {
+        std::cerr << "Error: Unable to open image file." << std::endl;
+        return;
+    }
 
     cv::resize(image, image, cv::Size(QR_SIZE, QR_SIZE)); // 调整图像尺寸为二维码大小
     int borderSize = RECT_SIZE / 9;
@@ -17,48 +22,48 @@ void ExtractQRCode(const std::string& filePath, std::vector<int>& data)
         for (int j = borderSize - 1; j <= QR_SIZE - borderSize; j++) {
             // 跳过定位图案区域
             if ((i < RECT_SIZE + borderSize && j < RECT_SIZE + borderSize) ||
-                (i < RECT_SIZE + borderSize && j >= QR_SIZE - RECT_SIZE + borderSize) ||
-                (i >= QR_SIZE - RECT_SIZE + borderSize && j < RECT_SIZE + borderSize)) {
+                (i < RECT_SIZE + borderSize && j >= QR_SIZE - RECT_SIZE - borderSize) ||
+                (i >= QR_SIZE - RECT_SIZE - borderSize && j < RECT_SIZE + borderSize)) {
                 continue;
             }
             cv::Vec3b pixel = image.at<cv::Vec3b>(i, j);
-
             int grayscale = (pixel[0] + pixel[1] + pixel[2]) / 3; // 灰度值为RGB分量的平均值
-            if (grayscale > COLOR_THRESHOLD) {
-                data.push_back(1); // 黑色像素对应二进制中的1
-            }
-            else {
-                data.push_back(0); // 白色像素对应二进制中的0
-            }
+            data.push_back(grayscale > colorThreshold ? 1 : 0); // 根据阈值判断黑白
         }
     }
 }
 
-
-
-
-
-// 将二进制数据写入二进制文件
-void WriteBinaryDataToBinFile(const std::string& filePath, const std::vector<int>& data)
-{
-    std::ofstream file(filePath, std::ios::binary); // 以二进制模式打开文件
-
-    if (!file.is_open()) {
-        std::cerr << "Error: Unable to open file for writing." << std::endl;
+void WriteBinaryDataToBinFile(const std::string& filePath, const std::vector<int>& data) {
+    std::ofstream outputFile(filePath, std::ios::binary);
+    if (!outputFile.is_open()) {
+        std::cerr << "Error: Unable to open output file." << std::endl;
         return;
     }
 
-    // 将二进制数据写入文件
-    for (int bit : data) {
-        char byte = static_cast<char>(bit);
-        file.write(&byte, sizeof(char));
+    unsigned char byte = 0; // 用于保存每个字节的数据
+    int bitCount = 0; // 记录当前字节中已经写入的比特数量
+
+    for (int value : data) {
+        byte |= (value & 0x01) << bitCount; // 将当前比特写入 byte 中
+        bitCount++;
+
+        if (bitCount == 8) { // 如果当前字节已满，则写入文件并重置
+            outputFile.write(reinterpret_cast<const char*>(&byte), sizeof(byte));
+            byte = 0;
+            bitCount = 0;
+        }
     }
 
-    file.close();
+    // 如果还有剩余比特未写入文件，则写入最后一个字节
+    if (bitCount > 0) {
+        outputFile.write(reinterpret_cast<const char*>(&byte), sizeof(byte));
+    }
+
+    outputFile.close();
 }
 
-int main()
-{
+
+int main() {
     std::string folderPath = "code/";
     std::vector<cv::String> fileNames;
     cv::glob(folderPath, fileNames);
@@ -70,6 +75,6 @@ int main()
         std::string outputFilePath = folderPath + "output.bin";
         WriteBinaryDataToBinFile(outputFilePath, binaryData);
     }
-    std::cout << "已成功将解码的二维码数据写入code文件夹output.bin文件"  << std::endl;
+    std::cout << "已成功将解码的二维码数据写入 code 文件夹 output.bin 文件" << std::endl;
     return 0;
 }
