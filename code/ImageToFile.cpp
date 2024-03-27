@@ -32,9 +32,8 @@ void ExtractQRCode(const std::string& filePath, std::vector<int>& data) {
         }
     }
 }
-
 void WriteBinaryDataToBinFile(const std::string& filePath, const std::vector<int>& data) {
-    std::ofstream outputFile(filePath, std::ios::binary);
+    std::ofstream outputFile(filePath, std::ios::binary | std::ios::app);
     if (!outputFile.is_open()) {
         std::cerr << "Error: Unable to open output file." << std::endl;
         return;
@@ -61,6 +60,8 @@ void WriteBinaryDataToBinFile(const std::string& filePath, const std::vector<int
 
     outputFile.close();
 }
+
+
 
 
 int main() {
