@@ -124,6 +124,21 @@ cv::Mat ScaleMat(const cv::Mat& image)
     return BiggerMat;
 }
 
+// 生成空白帧
+void CreatBlankcode(const std::string& filePath)
+{
+    // 创建四张空白图片
+    for (int i = 0; i < 4; ++i)
+    {
+        cv::Mat QR(QR_SIZE, QR_SIZE, CV_8UC3, WHITE);  // 创建白色背景的图像
+        cv::Mat BigQR;
+        BigQR = ScaleMat(QR);  // 放大图像
+        std::string fileName = "code\\" + std::to_string(i) + ".jpg";
+        cv::imwrite(fileName, BigQR);  // 将二维码保存为图片文件
+
+    }
+}
+
 // 生成二维码
 void CreatQRcode(const std::string& filePath)
 {
@@ -145,7 +160,7 @@ void CreatQRcode(const std::string& filePath)
 
         BigQR = ScaleMat(QR);  // 放大图像
 
-        std::string fileName = "code\\" + std::to_string(i) + ".jpg";
+        std::string fileName = "code\\" + std::to_string(i+4) + ".jpg";
         cv::imwrite(fileName, BigQR);  // 将二维码保存为图片文件
     }
 }
@@ -176,6 +191,7 @@ int main()
     // 创建存放二维码的文件夹
     system("mkdir code");
 
+    CreatBlankcode(filePath);//生成空白帧
     CreatQRcode(filePath);  // 生成二维码
 
     // 将生成的二维码图片转换成视频
@@ -185,4 +201,3 @@ int main()
 
     return 0;
 }
-
