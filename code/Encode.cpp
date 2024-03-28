@@ -63,7 +63,7 @@ void DrawRect(cv::Mat& image)
 void DrawQRPoint(const std::vector<int>& data, cv::Mat& image)
 {
     int cnt = 0;
-    for (int i = 0; i < QR_SIZE - RECT_SIZE / 9; i++)
+    for (int i = RECT_SIZE / 9; i < QR_SIZE - RECT_SIZE / 9; i++)
     {
         if (i <= RECT_SIZE) // 在两个定位图案之间
         {
@@ -73,7 +73,7 @@ void DrawQRPoint(const std::vector<int>& data, cv::Mat& image)
                 {
                     if (data[cnt] == 1)
                     {
-                        image.at<cv::Vec3b>(RECT_SIZE / 9 + i, RECT_SIZE + j + 1) = BLACK;  // 设置黑色点
+                        image.at<cv::Vec3b>(i, RECT_SIZE + j + 1) = BLACK;  // 设置黑色点
                     }
                     cnt++;
                 }
