@@ -109,7 +109,8 @@ void GetQR(const char *VideoName,const char *OutBinName,const char *VoutBinName)
 {
     system("mkdir QRcodeOut");
     char SystemCmd[256];
-    sprintf(SystemCmd, "bin\\ffmpeg.exe -i %s -q:v 2 -f image2 QRcodeOut\\%%04d.jpg", VideoName);
+    sprintf(SystemCmd, "bin\\ffmpeg.exe -i %s -f image2 -vf fps=10/1 -qscale:v 2 QRcodeOut\\%%04d.jpg", VideoName);
+    //sprintf(SystemCmd, "bin\\ffmpeg.exe -i %s -q:v 2 -f image2 QRcodeOut\\%%04d.jpg", VideoName);
     system(SystemCmd);
     char Buf[100] = { 0 };
     vector<Mat> QRcode;
