@@ -4,9 +4,9 @@
 #define RATE 10
 #define BLACK Vec3b(0, 0, 0)
 #define WHITE Vec3b(255, 255, 255)
-#define RED   Vec3b(0,0,255)//²âÊÔÓÃ
+#define RED   Vec3b(0,0,255)//æµ‹è¯•ç”¨
 
-#define DEBUG 1
+//#define DEBUG 1
 
 using namespace cv;
 
@@ -51,7 +51,7 @@ int QRtoUchar(Mat& image, std::vector<int>& data)
     for (int i = RECT_SIZE / 9; i < QR_SIZE - RECT_SIZE / 9; i++)
     {
 
-        if (i < RECT_SIZE)//Á½¸ö¾ØÕóÖĞ¼ä
+        if (i < RECT_SIZE)//ä¸¤ä¸ªçŸ©é˜µä¸­é—´
         {
             for (int j = RECT_SIZE; j < QR_SIZE - RECT_SIZE; j++)
             {
@@ -61,7 +61,7 @@ int QRtoUchar(Mat& image, std::vector<int>& data)
                 else data.push_back(3);
             }
         }
-        else if (i >= RECT_SIZE && i < QR_SIZE - RECT_SIZE)//Í¼ÏñÖĞ¼ä
+        else if (i >= RECT_SIZE && i < QR_SIZE - RECT_SIZE)//å›¾åƒä¸­é—´
         {
             for (int j = RECT_SIZE / 9; j < QR_SIZE - RECT_SIZE / 9; j++)
             {
@@ -99,7 +99,7 @@ int QRtoUchar(Mat& image, std::vector<int>& data)
     //Mat view;
     
     //cv::imwrite("view.jpg", image);
-    cv::waitKey();
+   // cv::waitKey();
 
     return 0;
 }
@@ -113,10 +113,10 @@ void GetQR(const char *VideoName,const char *OutBinName,const char *VoutBinName)
     system(SystemCmd);
     char Buf[100] = { 0 };
     vector<Mat> QRcode;
-    vector<int> data1,//½âÂëÊı¾İ
-        data2,//binÊı¾İ
-        data3;//Ô­Ê¼¶şÎ¬ÂëÊı¾İ
-    //cout << "ÇëÉÔµÈ¡£¡£¡£" << endl;
+    vector<int> data1,//è§£ç æ•°æ®
+        data2,//binæ•°æ®
+        data3;//åŸå§‹äºŒç»´ç æ•°æ®
+    //cout << "è¯·ç¨ç­‰ã€‚ã€‚ã€‚" << endl;
     for (int i = 1; i <1000; i++)
     {
         sprintf(Buf, "QRcodeOut/%04d.jpg", i);
@@ -133,12 +133,12 @@ void GetQR(const char *VideoName,const char *OutBinName,const char *VoutBinName)
             if (QRcode.size() < 1)
             {
                 QRcode.push_back(qrCode);
-                cout << Buf << "Â¼Èë³É¹¦---" << QRcode.size() << endl;
+                cout << Buf << "å½•å…¥æˆåŠŸ---" << QRcode.size() << endl;
             }
             if (QRcode.size() >= 1 && !areImagesEqual(qrCode, QRcode[QRcode.size() - 1]))
             {
                 QRcode.push_back(qrCode);
-                cout << Buf << "Â¼Èë³É¹¦---" << QRcode.size() << endl;
+                cout << Buf << "å½•å…¥æˆåŠŸ---" << QRcode.size() << endl;
                 //cout << "fafafafafa" << endl;
             }
             //imshow(Buf, qrCode);
@@ -147,11 +147,11 @@ void GetQR(const char *VideoName,const char *OutBinName,const char *VoutBinName)
         }
         else
         {
-            cout << Buf << " Î´¼ì³ö¶şÎ¬Âë" << endl;
+            cout << Buf << " æœªæ£€å‡ºäºŒç»´ç " << endl;
         }
         if (QRcode.size() >= 1)i += 2;
     }
-#ifdef DEBUG
+
    OpenFile(data2, "1.bin");
     int cnt = 0;
     for (Mat image : QRcode)
@@ -160,7 +160,7 @@ void GetQR(const char *VideoName,const char *OutBinName,const char *VoutBinName)
         cout << "No." << cnt;
         QRtoUchar(image, data1);
         cout << "---succeed" << endl;
-        
+#ifdef DEBUG
         int Rcnt = 0;
         int Dcnt = 0;
         int bit = data1.size();
@@ -177,14 +177,15 @@ void GetQR(const char *VideoName,const char *OutBinName,const char *VoutBinName)
             //if (i % 20 == 0&&i!=0)cout << endl;
         }
 
-        cout << endl << "½âÎö¹² " << bit << " ¸öbit" << endl;
-        cout << "¹² " << Dcnt << " ¸öbitÆúÓÃ" << endl << "ÆúÓÃÂÊ£º" << (double)Dcnt / bit << endl;
-        cout << "¹² " << Rcnt << " ¸öbit´íÎó" << endl << "´íÎóÂÊ£º" << (double)Rcnt / bit << endl;
+        cout << endl << "è§£æå…± " << bit << " ä¸ªbit" << endl;
+        cout << "å…± " << Dcnt << " ä¸ªbitå¼ƒç”¨" << endl << "å¼ƒç”¨ç‡ï¼š" << (double)Dcnt / bit << endl;
+        cout << "å…± " << Rcnt << " ä¸ªbité”™è¯¯" << endl << "é”™è¯¯ç‡ï¼š" << (double)Rcnt / bit << endl;
         resize(image, image, Size(680,680));
         imshow("currentQR", image);
         waitKey();
-    }
 #endif // DEBUG
+    }
+
     DataToFile(data1, OutBinName, VoutBinName);
     
 
@@ -201,14 +202,14 @@ bool DataToFile(const vector<int>& data,const char *BinFileName,const char * Vou
 
     std::vector<unsigned char> bytes;
     std::vector<unsigned char> Vbytes;
-    srand(time(NULL)); // ³õÊ¼»¯Ëæ»úÊıÖÖ×Ó
+    srand(time(NULL)); // åˆå§‹åŒ–éšæœºæ•°ç§å­
 
     for (size_t i = 0; i+8 < data.size(); i += 8) 
     {
         std::vector<int> chunk(data.begin() + i, data.begin() + i + 8);
         for (size_t j = 0; j < 8; ++j) {
             if (chunk[j] == 3) {
-                chunk[j] = rand() % 2; // Ëæ»úÉú³É0»ò1À´Ìæ´ú3
+                chunk[j] = rand() % 2; // éšæœºç”Ÿæˆ0æˆ–1æ¥æ›¿ä»£3
             }
         }
         unsigned char byte = 0;
@@ -234,7 +235,7 @@ bool DataToFile(const vector<int>& data,const char *BinFileName,const char * Vou
     }
 
 
-    BinFile.write(reinterpret_cast<const char*>(bytes.data()), bytes.size() * sizeof(unsigned char)); // Ğ´ÈëucharÀàĞÍÊı¾İ
+    BinFile.write(reinterpret_cast<const char*>(bytes.data()), bytes.size() * sizeof(unsigned char)); // å†™å…¥ucharç±»å‹æ•°æ®
     VoutBinFile.write(reinterpret_cast<const char*>(Vbytes.data()), Vbytes.size() * sizeof(unsigned char));
     BinFile.close();
     VoutBinFile.close();
@@ -280,6 +281,6 @@ bool areImagesEqual(const Mat& image1, const Mat& image2)
         }
 
        // cout << cnt <<endl;
-        return cnt > 85;//ÏàËÆ¶È´óÓÚ85
+        return cnt > 85;//ç›¸ä¼¼åº¦å¤§äº85
 }
 
